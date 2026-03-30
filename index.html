@@ -169,6 +169,22 @@
       color: var(--muted);
     }
 
+    .fallback-detail {
+      font-size: 0.75rem;
+      color: var(--error);
+      margin: 0 0 0.75rem !important;
+      line-height: 1.35;
+    }
+
+    .booking-hint {
+      font-size: 0.7rem;
+      color: var(--muted);
+      margin: 0 0 0.75rem;
+      line-height: 1.4;
+      font-family: "DM Mono", monospace;
+      letter-spacing: 0.04em;
+    }
+
     .fallback-url {
       font-family: "DM Mono", monospace;
       font-size: 0.7rem;
@@ -634,9 +650,13 @@
             <div class="booking-toolbar">
               <button type="button" class="back-link" id="back-btn" aria-label="Back to form">← Back</button>
             </div>
+            <p class="booking-hint" id="booking-hint">
+              Scheduling opens in a Chili Piper overlay on top of this page. If it does not appear, use the fallback link below.
+            </p>
             <div id="chilipiper-wrapper" aria-label="Meeting scheduler"></div>
             <div class="fallback" id="chilipiper-fallback" role="alert">
               <p>Calendar could not load. Send this link manually:</p>
+              <p class="fallback-detail hidden" id="fallback-detail"></p>
               <div class="fallback-url" id="fallback-url"></div>
               <button type="button" class="btn-secondary" id="copy-fallback-btn">Copy Link</button>
             </div>
@@ -744,7 +764,7 @@
         }
       };
 
-      var CP_TIMEOUT_MS = 12000;
+      var CP_TIMEOUT_MS = 25000;
       var TENANT = "adaptivesecurity";
 
       var form = document.getElementById("prospect-form");
@@ -754,6 +774,7 @@
       var chilipiperWrapper = document.getElementById("chilipiper-wrapper");
       var fallbackEl = document.getElementById("chilipiper-fallback");
       var fallbackUrlEl = document.getElementById("fallback-url");
+      var fallbackDetailEl = document.getElementById("fallback-detail");
       var copyFallbackBtn = document.getElementById("copy-fallback-btn");
       var backBtn = document.getElementById("back-btn");
       var guestChipsEl = document.getElementById("guest-chips");
@@ -910,10 +931,29 @@
         });
       }
 
+      function showFallback(reason) {
+        chilipiperWrapper.classList.add("hidden");
+        fallbackUrlEl.textContent = currentBookingUrl;
+        if (fallbackDetailEl) {
+          if (reason) {
+            fallbackDetailEl.textContent = reason;
+            fallbackDetailEl.classList.remove("hidden");
+          } else {
+            fallbackDetailEl.textContent = "";
+            fallbackDetailEl.classList.add("hidden");
+          }
+        }
+        fallbackEl.classList.add("visible");
+      }
+
       function showBookingUI() {
         document.body.classList.add("widget-open");
         track.classList.add("show-booking");
         fallbackEl.classList.remove("visible");
+        if (fallbackDetailEl) {
+          fallbackDetailEl.textContent = "";
+          fallbackDetailEl.classList.add("hidden");
+        }
         chilipiperWrapper.classList.remove("hidden");
       }
 
@@ -965,28 +1005,6 @@
         document.getElementById("err-email").textContent = "";
         document.getElementById("err-size").textContent = "";
         chilipiperWrapper.innerHTML = "";
-      }
-
-      function observeAndInjectGuests(container, csv) {
-        if (!csv) return;
-        var obs = new MutationObserver(function () {
-          var candidates = container.querySelectorAll(
-            'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea'
-          );
-          for (var i = 0; i < candidates.length; i++) {
-            var el = candidates[i];
-            var ph = (el.getAttribute("placeholder") || "").toLowerCase();
-            var nm = (el.getAttribute("name") || "").toLowerCase();
-            var id = (el.getAttribute("id") || "").toLowerCase();
-            if (/guest|attendee|invite|additional/.test(ph + nm + id) && !el.value) {
-              el.value = csv;
-              el.dispatchEvent(new Event("input", { bubbles: true }));
-              el.dispatchEvent(new Event("change", { bubbles: true }));
-            }
-          }
-        });
-        obs.observe(container, { childList: true, subtree: true });
-        setTimeout(function () { obs.disconnect(); }, 20000);
       }
 
       function copyText(text) {
@@ -1057,34 +1075,39 @@
             fallbackEl.classList.remove("visible");
             chilipiperWrapper.classList.remove("hidden");
 
+            /* Omit domElement: ChiliPiper marketing.js only appends concierge=true when
+               domElement is absent; without it the concierge router often 403s and onError fires.
+               Calendar opens as their full-viewport overlay (z-index above this app). */
             var opts = {
               title: "Book a Meeting",
               map: true,
-              domElement: chilipiperWrapper,
               lead: leadPayload,
               onSuccess: function () {
                 showConfirmation();
               },
-              onError: function () {
-                chilipiperWrapper.classList.add("hidden");
-                fallbackUrlEl.textContent = currentBookingUrl;
-                fallbackEl.classList.add("visible");
+              onError: function (info) {
+                var msg = (info && (info.message || (info.error && info.error.message))) || "";
+                if (msg) console.error("ChiliPiper onError:", info);
+                showFallback(
+                  msg ||
+                    "Ask your Chili Piper admin to allow this site URL (sourceUrl) for the router, or confirm the router slug is correct."
+                );
               }
             };
 
             try {
-              observeAndInjectGuests(chilipiperWrapper, guestCsv);
               window.ChiliPiper.submit(TENANT, route.slug, opts);
             } catch (e) {
-              chilipiperWrapper.classList.add("hidden");
-              fallbackUrlEl.textContent = currentBookingUrl;
-              fallbackEl.classList.add("visible");
+              console.error(e);
+              showFallback(e && e.message ? String(e.message) : "");
             }
           })
-          .catch(function () {
-            chilipiperWrapper.classList.add("hidden");
-            fallbackUrlEl.textContent = currentBookingUrl;
-            fallbackEl.classList.add("visible");
+          .catch(function (err) {
+            console.error(err);
+            showFallback(
+              (err && err.message) ||
+                "marketing.js did not load in time. Check network/ad blockers or try again."
+            );
           });
       });
     })();
