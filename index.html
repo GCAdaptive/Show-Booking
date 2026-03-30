@@ -1,0 +1,1093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Adaptive Booking — BDR Tool</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --border: #1e1e2e;
+      --accent: #00e5ff;
+      --accent-dim: rgba(0, 229, 255, 0.12);
+      --text: #f0f0f5;
+      --muted: #6b6b80;
+      --error: #ff4d6d;
+      --success: #00c9a7;
+      --touch: 44px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100dvh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", system-ui, sans-serif;
+      font-size: 16px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.widget-open {
+      overflow: hidden;
+      height: 100dvh;
+    }
+
+    .app {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem 1.25rem 1.5rem;
+    }
+
+    header {
+      flex-shrink: 0;
+      padding-bottom: 1.25rem;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 1.25rem;
+    }
+
+    .wordmark {
+      font-family: "DM Mono", monospace;
+      font-weight: 600;
+      font-size: 0.8125rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--text);
+    }
+
+    .subtitle {
+      font-family: "DM Mono", monospace;
+      font-size: 0.6875rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-top: 0.35rem;
+    }
+
+    .stage {
+      flex: 1;
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .track {
+      display: flex;
+      width: 200%;
+      height: 100%;
+      transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .track.show-booking {
+      transform: translateX(-50%);
+    }
+
+    .panel {
+      width: 50%;
+      flex-shrink: 0;
+      min-height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 0;
+      padding: 1.35rem 1.25rem 1.5rem;
+      box-shadow: 0 0 40px var(--accent-dim);
+    }
+
+    .panel-booking-inner {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .booking-toolbar {
+      display: flex;
+      align-items: center;
+      min-height: var(--touch);
+      margin-bottom: 0.75rem;
+    }
+
+    .back-link {
+      font-family: "DM Mono", monospace;
+      font-size: 0.75rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--accent);
+      text-decoration: none;
+      padding: 0.5rem 0;
+      min-height: var(--touch);
+      display: inline-flex;
+      align-items: center;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    #chilipiper-wrapper {
+      flex: 1;
+      min-height: 320px;
+      overflow: auto;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .fallback {
+      display: none;
+      flex-direction: column;
+      gap: 1rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      background: var(--surface);
+    }
+
+    .fallback.visible {
+      display: flex;
+    }
+
+    .fallback p {
+      margin: 0;
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .fallback-url {
+      font-family: "DM Mono", monospace;
+      font-size: 0.7rem;
+      word-break: break-all;
+      color: var(--text);
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+    }
+
+    .field {
+      position: relative;
+      margin-bottom: 1.35rem;
+    }
+
+    .field input {
+      width: 100%;
+      min-height: var(--touch);
+      padding: 1.1rem 0 0.35rem;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      font-family: "Inter", sans-serif;
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+
+    .field input:focus {
+      border-bottom-color: var(--accent);
+      box-shadow: 0 1px 0 0 var(--accent);
+    }
+
+    .field label {
+      position: absolute;
+      left: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      font-family: "DM Mono", monospace;
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      pointer-events: none;
+      transition: top 0.2s ease, transform 0.2s ease, font-size 0.2s ease, color 0.2s ease;
+    }
+
+    .field:focus-within label,
+    .field.has-value label {
+      top: 0;
+      transform: translateY(0);
+      font-size: 0.625rem;
+      color: var(--accent);
+    }
+
+    .field-error {
+      font-size: 0.75rem;
+      color: var(--error);
+      margin-top: 0.35rem;
+      min-height: 1.1em;
+    }
+
+    .segment-label {
+      font-family: "DM Mono", monospace;
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 0.65rem;
+      display: block;
+    }
+
+    .segment-row {
+      display: flex;
+      gap: 0.5rem;
+      width: 100%;
+    }
+
+    .segment-btn {
+      flex: 1;
+      min-height: var(--touch);
+      padding: 0 0.35rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.65rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--muted);
+      cursor: pointer;
+      border-radius: 0;
+      transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s ease;
+    }
+
+    .segment-btn:hover {
+      border-color: var(--muted);
+      color: var(--text);
+    }
+
+    .segment-btn.active {
+      background: var(--accent);
+      color: var(--bg);
+      border-color: var(--accent);
+    }
+
+    .guest-block {
+      margin-bottom: 1.5rem;
+    }
+
+    .guest-input-wrap {
+      min-height: var(--touch);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .guest-input-wrap:focus-within {
+      border-bottom-color: var(--accent);
+      box-shadow: 0 1px 0 0 var(--accent);
+    }
+
+    .guest-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.25rem 0.5rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.7rem;
+      background: var(--border);
+      color: var(--text);
+      border-radius: 0;
+      animation: chipIn 0.22s ease;
+    }
+
+    @keyframes chipIn {
+      from { opacity: 0; transform: scale(0.92); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    .guest-chip button {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 0.2rem;
+      line-height: 1;
+      font-size: 0.85rem;
+      min-width: var(--touch);
+      min-height: var(--touch);
+      margin: -0.35rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .guest-chip button:hover {
+      color: var(--error);
+    }
+
+    .guest-input {
+      flex: 1;
+      min-width: 120px;
+      min-height: calc(var(--touch) - 8px);
+      border: none;
+      background: transparent;
+      color: var(--text);
+      font-family: "Inter", sans-serif;
+      font-size: 0.9375rem;
+      outline: none;
+    }
+
+    .btn-primary {
+      position: relative;
+      width: 100%;
+      min-height: var(--touch);
+      margin-top: 0.25rem;
+      border: none;
+      border-radius: 0;
+      background: var(--accent);
+      color: var(--bg);
+      font-family: "DM Mono", monospace;
+      font-weight: 700;
+      font-size: 0.75rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      cursor: pointer;
+      overflow: hidden;
+      transition: box-shadow 0.25s ease;
+    }
+
+    .btn-primary::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.35s ease;
+    }
+
+    .btn-primary:hover::before {
+      transform: translateX(100%);
+    }
+
+    .btn-primary:hover {
+      box-shadow: 0 0 24px rgba(0, 229, 255, 0.45);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      min-height: var(--touch);
+      padding: 0 1rem;
+      font-family: "DM Mono", monospace;
+      font-size: 0.6875rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      border: 1px solid var(--accent);
+      background: transparent;
+      color: var(--accent);
+      cursor: pointer;
+      border-radius: 0;
+    }
+
+    .btn-secondary:hover {
+      background: var(--accent-dim);
+    }
+
+    .confirmation {
+      display: none;
+      flex-direction: column;
+      align-items: stretch;
+      text-align: center;
+      padding: 2rem 1rem;
+    }
+
+    .confirmation.visible {
+      display: flex;
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      justify-content: center;
+    }
+
+    .confirmation h2 {
+      font-family: "DM Mono", monospace;
+      font-size: 1.125rem;
+      font-weight: 600;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--success);
+      margin: 0 0 1.25rem;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.05s forwards;
+    }
+
+    .confirmation .detail {
+      font-size: 0.9375rem;
+      color: var(--text);
+      margin: 0 0 0.35rem;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.15s forwards;
+    }
+
+    .confirmation .detail.muted {
+      color: var(--muted);
+      font-size: 0.8125rem;
+      animation-delay: 0.25s;
+    }
+
+    .confirmation .guest-note {
+      text-align: left;
+      margin-top: 1.5rem;
+      padding: 1rem;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.35s forwards;
+    }
+
+    .confirmation .guest-note p {
+      margin: 0 0 0.5rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .confirmation .btn-primary {
+      margin-top: 1.75rem;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.45s forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .hidden { display: none !important; }
+
+    html.hide-main-app #main-app {
+      visibility: hidden;
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .site-gate {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      background: var(--bg);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    html.hide-main-app .site-gate {
+      display: flex;
+    }
+
+    .site-gate-card {
+      width: 100%;
+      max-width: 400px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 1.5rem 1.25rem;
+      box-shadow: 0 0 40px var(--accent-dim);
+    }
+
+    .site-gate-card h1 {
+      font-family: "DM Mono", monospace;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text);
+      margin: 0 0 0.35rem;
+    }
+
+    .site-gate-card p {
+      margin: 0 0 1.25rem;
+      font-size: 0.8125rem;
+      color: var(--muted);
+    }
+
+    .site-gate-card input[type="password"] {
+      width: 100%;
+      min-height: var(--touch);
+      padding: 0.75rem 0;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      font-family: "DM Mono", monospace;
+      font-size: 1rem;
+      outline: none;
+      margin-bottom: 0.5rem;
+    }
+
+    .site-gate-card input[type="password"]:focus {
+      border-bottom-color: var(--accent);
+      box-shadow: 0 1px 0 0 var(--accent);
+    }
+
+    .site-gate-err {
+      min-height: 1.25rem;
+      font-size: 0.75rem;
+      color: var(--error);
+      margin-bottom: 0.75rem;
+    }
+  </style>
+</head>
+<body>
+  <script>
+    (function () {
+      var E = "__GH_PAGES_ACCESS_SHA256__";
+      var on = E.length === 64 && /^[a-f0-9]+$/i.test(E);
+      if (on && sessionStorage.getItem("adaptive_booking_site") !== E) {
+        document.documentElement.classList.add("hide-main-app");
+      }
+    })();
+  </script>
+
+  <div class="site-gate" id="site-gate" role="dialog" aria-modal="true" aria-labelledby="site-gate-title">
+    <div class="site-gate-card">
+      <h1 id="site-gate-title">Restricted</h1>
+      <p>Enter the team password to open the booking tool.</p>
+      <input type="password" id="site-gate-password" autocomplete="current-password" placeholder="Password" />
+      <div class="site-gate-err" id="site-gate-err" aria-live="polite"></div>
+      <button type="button" class="btn-primary" id="site-gate-submit">Unlock</button>
+    </div>
+  </div>
+
+  <div class="app" id="main-app">
+    <header>
+      <div class="wordmark">Adaptive Security</div>
+      <div class="subtitle">BDR Booking Tool</div>
+    </header>
+
+    <div class="stage" id="stage">
+      <div class="track" id="track">
+        <div class="panel">
+          <div class="card">
+            <form id="prospect-form" novalidate>
+              <div class="field" id="field-first">
+                <input type="text" id="firstName" name="firstName" autocomplete="given-name" placeholder=" " required />
+                <label for="firstName">First Name</label>
+                <div class="field-error" id="err-first" aria-live="polite"></div>
+              </div>
+              <div class="field" id="field-last">
+                <input type="text" id="lastName" name="lastName" autocomplete="family-name" placeholder=" " required />
+                <label for="lastName">Last Name</label>
+                <div class="field-error" id="err-last" aria-live="polite"></div>
+              </div>
+              <div class="field" id="field-email">
+                <input type="email" id="email" name="email" autocomplete="email" placeholder=" " required />
+                <label for="email">Email</label>
+                <div class="field-error" id="err-email" aria-live="polite"></div>
+              </div>
+
+              <div class="field" id="field-size">
+                <span class="segment-label" id="size-label">Company Size</span>
+                <div class="segment-row" role="group" aria-labelledby="size-label">
+                  <button type="button" class="segment-btn" data-size="mm" aria-pressed="false">&lt; 500</button>
+                  <button type="button" class="segment-btn" data-size="ent" aria-pressed="false">500 – 4,999</button>
+                  <button type="button" class="segment-btn" data-size="strat" aria-pressed="false">5,000+</button>
+                </div>
+                <div class="field-error" id="err-size" aria-live="polite"></div>
+              </div>
+
+              <div class="guest-block">
+                <span class="segment-label" id="guest-label">Additional Guest Emails</span>
+                <div class="guest-input-wrap" id="guest-wrap">
+                  <span id="guest-chips"></span>
+                  <input type="text" class="guest-input" id="guest-input" placeholder="Add email, Enter or comma" aria-labelledby="guest-label" inputmode="email" autocomplete="off" />
+                </div>
+              </div>
+
+              <button type="submit" class="btn-primary" id="submit-btn">Find a Time</button>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-booking-inner card" style="flex:1;min-height:0;display:flex;flex-direction:column;padding-top:0.75rem;">
+            <div class="booking-toolbar">
+              <button type="button" class="back-link" id="back-btn" aria-label="Back to form">← Back</button>
+            </div>
+            <div id="chilipiper-wrapper" aria-label="Meeting scheduler"></div>
+            <div class="fallback" id="chilipiper-fallback" role="alert">
+              <p>Calendar could not load. Send this link manually:</p>
+              <div class="fallback-url" id="fallback-url"></div>
+              <button type="button" class="btn-secondary" id="copy-fallback-btn">Copy Link</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="confirmation card" id="confirmation">
+        <h2>Meeting booked! ✓</h2>
+        <p class="detail" id="conf-name"></p>
+        <p class="detail muted" id="conf-email"></p>
+        <div class="guest-note" id="guest-note-block">
+          <p>Add guests manually after booking — emails copied below.</p>
+          <div class="fallback-url" id="conf-guest-emails"></div>
+          <button type="button" class="btn-secondary" id="copy-guests-btn" style="margin-top:0.75rem;width:100%;">Copy guest emails</button>
+        </div>
+        <button type="button" class="btn-primary" id="book-another-btn">Book Another</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var EXPECTED_SHA256 = "__GH_PAGES_ACCESS_SHA256__";
+      var GATE_ON = EXPECTED_SHA256.length === 64 && /^[a-f0-9]+$/i.test(EXPECTED_SHA256);
+
+      function loadChiliPiperScript() {
+        if (window.__cpMarketingLoading) return;
+        window.__cpMarketingLoading = true;
+        var s = document.createElement("script");
+        s.src = "https://js.chilipiper.com/marketing.js";
+        s.async = true;
+        document.head.appendChild(s);
+      }
+
+      function revealMainApp() {
+        document.documentElement.classList.remove("hide-main-app");
+        var g = document.getElementById("site-gate");
+        if (g) g.classList.add("hidden");
+        loadChiliPiperScript();
+      }
+
+      if (!GATE_ON) {
+        revealMainApp();
+      } else if (sessionStorage.getItem("adaptive_booking_site") === EXPECTED_SHA256) {
+        revealMainApp();
+      } else {
+        var pw = document.getElementById("site-gate-password");
+        var err = document.getElementById("site-gate-err");
+        var btn = document.getElementById("site-gate-submit");
+
+        function sha256Hex(str) {
+          return crypto.subtle.digest("SHA-256", new TextEncoder().encode(str)).then(function (buf) {
+            var a = new Uint8Array(buf);
+            var hex = "";
+            for (var i = 0; i < a.length; i++) {
+              hex += a[i].toString(16).padStart(2, "0");
+            }
+            return hex;
+          });
+        }
+
+        function tryUnlock() {
+          err.textContent = "";
+          var v = (pw && pw.value) || "";
+          sha256Hex(v).then(function (h) {
+            if (h.toLowerCase() === EXPECTED_SHA256.toLowerCase()) {
+              sessionStorage.setItem("adaptive_booking_site", EXPECTED_SHA256);
+              revealMainApp();
+            } else {
+              err.textContent = "Incorrect password.";
+              pw.value = "";
+              pw.focus();
+            }
+          }).catch(function () {
+            err.textContent = "Could not verify. Try another browser.";
+          });
+        }
+
+        if (btn) btn.addEventListener("click", tryUnlock);
+        if (pw) {
+          pw.addEventListener("keydown", function (ev) {
+            if (ev.key === "Enter") tryUnlock();
+          });
+          setTimeout(function () { pw.focus(); }, 0);
+        }
+      }
+    })();
+  </script>
+
+  <script>
+    (function () {
+      var ROUTES = {
+        mm: {
+          slug: "outbound-default-meeting-45-mm",
+          url: "https://adaptivesecurity.chilipiper.com/round-robin/outbound-default-meeting-45-mm"
+        },
+        ent: {
+          slug: "outbound-default-meeting-45-ent",
+          url: "https://adaptivesecurity.chilipiper.com/round-robin/outbound-default-meeting-45-ent"
+        },
+        strat: {
+          slug: "strat-default-meeting-47",
+          url: "https://adaptivesecurity.chilipiper.com/round-robin/strat-default-meeting-47"
+        }
+      };
+
+      var CP_TIMEOUT_MS = 12000;
+      var TENANT = "adaptivesecurity";
+
+      var form = document.getElementById("prospect-form");
+      var track = document.getElementById("track");
+      var stage = document.getElementById("stage");
+      var confirmation = document.getElementById("confirmation");
+      var chilipiperWrapper = document.getElementById("chilipiper-wrapper");
+      var fallbackEl = document.getElementById("chilipiper-fallback");
+      var fallbackUrlEl = document.getElementById("fallback-url");
+      var copyFallbackBtn = document.getElementById("copy-fallback-btn");
+      var backBtn = document.getElementById("back-btn");
+      var guestChipsEl = document.getElementById("guest-chips");
+      var guestInput = document.getElementById("guest-input");
+      var guestNoteBlock = document.getElementById("guest-note-block");
+      var confGuestEmails = document.getElementById("conf-guest-emails");
+      var copyGuestsBtn = document.getElementById("copy-guests-btn");
+
+      var selectedSize = null;
+      var guestEmails = [];
+      var currentBookingUrl = "";
+      var lastLead = {};
+
+      function toggleFieldValueClass(input, fieldEl) {
+        if (!fieldEl) fieldEl = input.closest(".field");
+        if (input.value.trim()) fieldEl.classList.add("has-value");
+        else fieldEl.classList.remove("has-value");
+      }
+
+      ["firstName", "lastName", "email"].forEach(function (id) {
+        var el = document.getElementById(id);
+        var field = document.getElementById("field-" + (id === "firstName" ? "first" : id === "lastName" ? "last" : "email"));
+        el.addEventListener("input", function () {
+          toggleFieldValueClass(el, field);
+          clearErr(id);
+        });
+        el.addEventListener("blur", function () { validateField(id); });
+        toggleFieldValueClass(el, field);
+      });
+
+      document.querySelectorAll(".segment-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          document.querySelectorAll(".segment-btn").forEach(function (b) {
+            b.classList.remove("active");
+            b.setAttribute("aria-pressed", "false");
+          });
+          btn.classList.add("active");
+          btn.setAttribute("aria-pressed", "true");
+          selectedSize = btn.getAttribute("data-size");
+          document.getElementById("err-size").textContent = "";
+        });
+      });
+
+      function isValidEmail(s) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim());
+      }
+
+      function addGuestEmail(raw) {
+        var e = String(raw).trim();
+        if (!e || !isValidEmail(e)) return;
+        if (guestEmails.indexOf(e.toLowerCase()) !== -1) return;
+        guestEmails.push(e.toLowerCase());
+        renderGuestChips();
+      }
+
+      function renderGuestChips() {
+        guestChipsEl.innerHTML = "";
+        guestEmails.forEach(function (email) {
+          var chip = document.createElement("span");
+          chip.className = "guest-chip";
+          chip.textContent = email;
+          var rm = document.createElement("button");
+          rm.type = "button";
+          rm.setAttribute("aria-label", "Remove " + email);
+          rm.textContent = "✕";
+          rm.addEventListener("click", function () {
+            guestEmails = guestEmails.filter(function (g) { return g !== email; });
+            renderGuestChips();
+          });
+          chip.appendChild(rm);
+          guestChipsEl.appendChild(chip);
+        });
+      }
+
+      function splitEmails(str) {
+        return str.split(/[\s,;]+/).map(function (x) { return x.trim(); }).filter(Boolean);
+      }
+
+      guestInput.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter" || ev.key === ",") {
+          ev.preventDefault();
+          addGuestEmail(guestInput.value);
+          guestInput.value = "";
+        } else if (ev.key === "Backspace" && !guestInput.value && guestEmails.length) {
+          guestEmails.pop();
+          renderGuestChips();
+        }
+      });
+
+      guestInput.addEventListener("paste", function (ev) {
+        ev.preventDefault();
+        var text = (ev.clipboardData || window.clipboardData).getData("text") || "";
+        splitEmails(text).forEach(addGuestEmail);
+        guestInput.value = "";
+      });
+
+      function clearErr(which) {
+        var map = {
+          first: "err-first",
+          last: "err-last",
+          email: "err-email",
+          size: "err-size"
+        };
+        if (which === "firstName") document.getElementById("err-first").textContent = "";
+        else if (which === "lastName") document.getElementById("err-last").textContent = "";
+        else if (which === "email") document.getElementById("err-email").textContent = "";
+      }
+
+      function validateField(which) {
+        var ok = true;
+        if (which === "firstName") {
+          var v = document.getElementById("firstName").value.trim();
+          document.getElementById("err-first").textContent = v ? "" : "Required";
+          ok = !!v;
+        } else if (which === "lastName") {
+          var v2 = document.getElementById("lastName").value.trim();
+          document.getElementById("err-last").textContent = v2 ? "" : "Required";
+          ok = !!v2;
+        } else if (which === "email") {
+          var v3 = document.getElementById("email").value.trim();
+          var err = !v3 ? "Required" : !isValidEmail(v3) ? "Invalid email" : "";
+          document.getElementById("err-email").textContent = err;
+          ok = !err;
+        }
+        return ok;
+      }
+
+      function validateForm() {
+        var a = validateField("firstName");
+        var b = validateField("lastName");
+        var c = validateField("email");
+        var d = true;
+        if (!selectedSize) {
+          document.getElementById("err-size").textContent = "Select company size";
+          d = false;
+        } else {
+          document.getElementById("err-size").textContent = "";
+        }
+        return a && b && c && d;
+      }
+
+      function waitForChiliPiper(ms) {
+        return new Promise(function (resolve, reject) {
+          var t0 = Date.now();
+          var id = setInterval(function () {
+            if (window.ChiliPiper && typeof window.ChiliPiper.submit === "function") {
+              clearInterval(id);
+              resolve();
+            } else if (Date.now() - t0 > ms) {
+              clearInterval(id);
+              reject(new Error("ChiliPiper load timeout"));
+            }
+          }, 40);
+        });
+      }
+
+      function showBookingUI() {
+        document.body.classList.add("widget-open");
+        track.classList.add("show-booking");
+        fallbackEl.classList.remove("visible");
+        chilipiperWrapper.classList.remove("hidden");
+      }
+
+      function showFormUI() {
+        document.body.classList.remove("widget-open");
+        track.classList.remove("show-booking");
+        track.classList.remove("hidden");
+        confirmation.classList.remove("visible");
+        chilipiperWrapper.innerHTML = "";
+        fallbackEl.classList.remove("visible");
+        chilipiperWrapper.classList.remove("hidden");
+      }
+
+      function showConfirmation() {
+        document.body.classList.remove("widget-open");
+        track.classList.add("hidden");
+        confirmation.classList.add("visible");
+
+        var fn = lastLead.FirstName || "";
+        var ln = lastLead.LastName || "";
+        document.getElementById("conf-name").textContent = (fn + " " + ln).trim() || "—";
+        document.getElementById("conf-email").textContent = lastLead.Email || "";
+
+        var guests = lastLead._guestList || [];
+        if (guests.length) {
+          guestNoteBlock.style.display = "block";
+          confGuestEmails.textContent = guests.join(", ");
+        } else {
+          guestNoteBlock.style.display = "none";
+        }
+      }
+
+      function resetAll() {
+        showFormUI();
+        track.classList.remove("hidden");
+        form.reset();
+        selectedSize = null;
+        guestEmails = [];
+        renderGuestChips();
+        document.querySelectorAll(".segment-btn").forEach(function (b) {
+          b.classList.remove("active");
+          b.setAttribute("aria-pressed", "false");
+        });
+        ["field-first", "field-last", "field-email"].forEach(function (fid) {
+          document.getElementById(fid).classList.remove("has-value");
+        });
+        document.getElementById("err-first").textContent = "";
+        document.getElementById("err-last").textContent = "";
+        document.getElementById("err-email").textContent = "";
+        document.getElementById("err-size").textContent = "";
+        chilipiperWrapper.innerHTML = "";
+      }
+
+      function observeAndInjectGuests(container, csv) {
+        if (!csv) return;
+        var obs = new MutationObserver(function () {
+          var candidates = container.querySelectorAll(
+            'input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]), textarea'
+          );
+          for (var i = 0; i < candidates.length; i++) {
+            var el = candidates[i];
+            var ph = (el.getAttribute("placeholder") || "").toLowerCase();
+            var nm = (el.getAttribute("name") || "").toLowerCase();
+            var id = (el.getAttribute("id") || "").toLowerCase();
+            if (/guest|attendee|invite|additional/.test(ph + nm + id) && !el.value) {
+              el.value = csv;
+              el.dispatchEvent(new Event("input", { bubbles: true }));
+              el.dispatchEvent(new Event("change", { bubbles: true }));
+            }
+          }
+        });
+        obs.observe(container, { childList: true, subtree: true });
+        setTimeout(function () { obs.disconnect(); }, 20000);
+      }
+
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          return navigator.clipboard.writeText(text);
+        }
+        var ta = document.createElement("textarea");
+        ta.value = text;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try {
+          document.execCommand("copy");
+        } finally {
+          document.body.removeChild(ta);
+        }
+        return Promise.resolve();
+      }
+
+      copyFallbackBtn.addEventListener("click", function () {
+        copyText(currentBookingUrl);
+      });
+
+      copyGuestsBtn.addEventListener("click", function () {
+        copyText((lastLead._guestList || []).join(", "));
+      });
+
+      backBtn.addEventListener("click", function () {
+        showFormUI();
+      });
+
+      document.getElementById("book-another-btn").addEventListener("click", resetAll);
+
+      form.addEventListener("submit", function (ev) {
+        ev.preventDefault();
+        if (!validateForm()) return;
+
+        var firstName = document.getElementById("firstName").value.trim();
+        var lastName = document.getElementById("lastName").value.trim();
+        var email = document.getElementById("email").value.trim();
+        var route = ROUTES[selectedSize];
+        currentBookingUrl = route.url;
+
+        lastLead = {
+          FirstName: firstName,
+          LastName: lastName,
+          Email: email,
+          _guestList: guestEmails.slice()
+        };
+
+        var guestCsv = guestEmails.join(", ");
+        var leadPayload = {
+          FirstName: firstName,
+          LastName: lastName,
+          Email: email
+        };
+        if (guestCsv) {
+          leadPayload.GuestEmails = guestCsv;
+          leadPayload.guestEmails = guestCsv;
+        }
+
+        showBookingUI();
+        chilipiperWrapper.innerHTML = "";
+
+        waitForChiliPiper(CP_TIMEOUT_MS)
+          .then(function () {
+            fallbackEl.classList.remove("visible");
+            chilipiperWrapper.classList.remove("hidden");
+
+            var opts = {
+              title: "Book a Meeting",
+              map: true,
+              domElement: chilipiperWrapper,
+              lead: leadPayload,
+              onSuccess: function () {
+                showConfirmation();
+              },
+              onError: function () {
+                chilipiperWrapper.classList.add("hidden");
+                fallbackUrlEl.textContent = currentBookingUrl;
+                fallbackEl.classList.add("visible");
+              }
+            };
+
+            try {
+              observeAndInjectGuests(chilipiperWrapper, guestCsv);
+              window.ChiliPiper.submit(TENANT, route.slug, opts);
+            } catch (e) {
+              chilipiperWrapper.classList.add("hidden");
+              fallbackUrlEl.textContent = currentBookingUrl;
+              fallbackEl.classList.add("visible");
+            }
+          })
+          .catch(function () {
+            chilipiperWrapper.classList.add("hidden");
+            fallbackUrlEl.textContent = currentBookingUrl;
+            fallbackEl.classList.add("visible");
+          });
+      });
+    })();
+  </script>
+</body>
+</html>
