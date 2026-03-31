@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Adaptive Booking — BDR Tool</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -23,15 +25,23 @@
 
     *, *::before, *::after { box-sizing: border-box; }
 
+    html {
+      height: 100%;
+      height: -webkit-fill-available;
+    }
+
     html, body {
       margin: 0;
+      min-height: 100%;
       min-height: 100dvh;
+      min-height: -webkit-fill-available;
       background: var(--bg);
       color: var(--text);
       font-family: "Inter", system-ui, sans-serif;
       font-size: 16px;
       line-height: 1.45;
       -webkit-font-smoothing: antialiased;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body.widget-open {
@@ -40,19 +50,33 @@
     }
 
     .app {
-      max-width: 480px;
+      box-sizing: border-box;
+      width: 100%;
+      max-width: 100%;
       margin: 0 auto;
       min-height: 100dvh;
+      min-height: -webkit-fill-available;
       display: flex;
       flex-direction: column;
-      padding: 1rem 1.25rem 1.5rem;
+      padding: max(0.75rem, env(safe-area-inset-top))
+        max(1rem, env(safe-area-inset-right))
+        max(0.75rem, env(safe-area-inset-bottom))
+        max(1rem, env(safe-area-inset-left));
+    }
+
+    @media (min-width: 768px) {
+      .app {
+        max-width: 720px;
+        padding-left: max(1.25rem, env(safe-area-inset-left));
+        padding-right: max(1.25rem, env(safe-area-inset-right));
+      }
     }
 
     header {
       flex-shrink: 0;
-      padding-bottom: 1.25rem;
+      padding-bottom: 0.85rem;
       border-bottom: 1px solid var(--border);
-      margin-bottom: 1.25rem;
+      margin-bottom: 0.85rem;
     }
 
     .wordmark {
@@ -74,16 +98,19 @@
     }
 
     .stage {
-      flex: 1;
+      flex: 1 1 0;
       min-height: 0;
       position: relative;
       overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
 
     .track {
       display: flex;
       width: 200%;
-      height: 100%;
+      flex: 1;
+      min-height: 0;
       transition: transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
@@ -143,47 +170,22 @@
     }
 
     #chilipiper-wrapper {
-      flex: 1;
+      flex: 1 1 0;
       display: flex;
       flex-direction: column;
-      min-height: max(320px, 52vh);
+      min-height: 0;
       overflow: hidden;
       border: 1px solid var(--border);
       background: #0d0d12;
+      -webkit-overflow-scrolling: touch;
     }
 
     #chilipiper-wrapper iframe {
-      flex: 1;
+      flex: 1 1 0;
       width: 100%;
-      min-height: 420px;
+      min-height: 0;
       border: 0;
       background: #fff;
-    }
-
-    .fallback {
-      display: none;
-      flex-direction: column;
-      gap: 1rem;
-      padding: 1rem;
-      border: 1px solid var(--border);
-      background: var(--surface);
-    }
-
-    .fallback.visible {
-      display: flex;
-    }
-
-    .fallback p {
-      margin: 0;
-      font-size: 0.875rem;
-      color: var(--muted);
-    }
-
-    .fallback-detail {
-      font-size: 0.75rem;
-      color: var(--error);
-      margin: 0 0 0.75rem !important;
-      line-height: 1.35;
     }
 
     .booking-hint {
@@ -195,68 +197,11 @@
       letter-spacing: 0.04em;
     }
 
-    .fallback-url {
-      font-family: "DM Mono", monospace;
-      font-size: 0.7rem;
-      word-break: break-all;
-      color: var(--text);
-      padding: 0.75rem;
-      border: 1px solid var(--border);
-      background: var(--bg);
-    }
-
-    .field {
-      position: relative;
-      margin-bottom: 1.35rem;
-    }
-
-    .field input {
-      width: 100%;
-      min-height: var(--touch);
-      padding: 1.1rem 0 0.35rem;
-      border: none;
-      border-bottom: 1px solid var(--border);
-      border-radius: 0;
-      background: transparent;
-      color: var(--text);
-      font-family: "Inter", sans-serif;
-      font-size: 1rem;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    .field input:focus {
-      border-bottom-color: var(--accent);
-      box-shadow: 0 1px 0 0 var(--accent);
-    }
-
-    .field label {
-      position: absolute;
-      left: 0;
-      top: 50%;
-      transform: translateY(-50%);
-      font-family: "DM Mono", monospace;
-      font-size: 0.6875rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
+    .size-hint {
+      font-size: 0.8125rem;
       color: var(--muted);
-      pointer-events: none;
-      transition: top 0.2s ease, transform 0.2s ease, font-size 0.2s ease, color 0.2s ease;
-    }
-
-    .field:focus-within label,
-    .field.has-value label {
-      top: 0;
-      transform: translateY(0);
-      font-size: 0.625rem;
-      color: var(--accent);
-    }
-
-    .field-error {
-      font-size: 0.75rem;
-      color: var(--error);
-      margin-top: 0.35rem;
-      min-height: 1.1em;
+      margin: 0 0 1rem;
+      line-height: 1.4;
     }
 
     .segment-label {
@@ -275,12 +220,19 @@
       width: 100%;
     }
 
+    @media (max-width: 640px) {
+      .segment-row.segment-row--pick {
+        flex-direction: column;
+        gap: 0.65rem;
+      }
+    }
+
     .segment-btn {
       flex: 1;
-      min-height: var(--touch);
-      padding: 0 0.35rem;
+      min-height: max(48px, var(--touch));
+      padding: 0.75rem 0.5rem;
       font-family: "DM Mono", monospace;
-      font-size: 0.65rem;
+      font-size: clamp(0.65rem, 2.8vw, 0.75rem);
       font-weight: 600;
       letter-spacing: 0.04em;
       text-transform: uppercase;
@@ -292,7 +244,8 @@
       transition: background 0.2s, color 0.2s, border-color 0.2s, transform 0.15s ease;
     }
 
-    .segment-btn:hover {
+    .segment-btn:hover,
+    .segment-btn:active {
       border-color: var(--muted);
       color: var(--text);
     }
@@ -301,76 +254,6 @@
       background: var(--accent);
       color: var(--bg);
       border-color: var(--accent);
-    }
-
-    .guest-block {
-      margin-bottom: 1.5rem;
-    }
-
-    .guest-input-wrap {
-      min-height: var(--touch);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0;
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-
-    .guest-input-wrap:focus-within {
-      border-bottom-color: var(--accent);
-      box-shadow: 0 1px 0 0 var(--accent);
-    }
-
-    .guest-chip {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.35rem;
-      padding: 0.25rem 0.5rem;
-      font-family: "DM Mono", monospace;
-      font-size: 0.7rem;
-      background: var(--border);
-      color: var(--text);
-      border-radius: 0;
-      animation: chipIn 0.22s ease;
-    }
-
-    @keyframes chipIn {
-      from { opacity: 0; transform: scale(0.92); }
-      to { opacity: 1; transform: scale(1); }
-    }
-
-    .guest-chip button {
-      background: none;
-      border: none;
-      color: var(--muted);
-      cursor: pointer;
-      padding: 0.2rem;
-      line-height: 1;
-      font-size: 0.85rem;
-      min-width: var(--touch);
-      min-height: var(--touch);
-      margin: -0.35rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .guest-chip button:hover {
-      color: var(--error);
-    }
-
-    .guest-input {
-      flex: 1;
-      min-width: 120px;
-      min-height: calc(var(--touch) - 8px);
-      border: none;
-      background: transparent;
-      color: var(--text);
-      font-family: "Inter", sans-serif;
-      font-size: 0.9375rem;
-      outline: none;
     }
 
     .btn-primary {
@@ -463,40 +346,17 @@
     }
 
     .confirmation .detail {
-      font-size: 0.9375rem;
-      color: var(--text);
-      margin: 0 0 0.35rem;
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin: 0 0 1.25rem;
       opacity: 0;
       animation: fadeUp 0.5s ease 0.15s forwards;
     }
 
-    .confirmation .detail.muted {
-      color: var(--muted);
-      font-size: 0.8125rem;
-      animation-delay: 0.25s;
-    }
-
-    .confirmation .guest-note {
-      text-align: left;
-      margin-top: 1.5rem;
-      padding: 1rem;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      opacity: 0;
-      animation: fadeUp 0.5s ease 0.35s forwards;
-    }
-
-    .confirmation .guest-note p {
-      margin: 0 0 0.5rem;
-      font-size: 0.75rem;
-      color: var(--muted);
-      font-style: italic;
-    }
-
     .confirmation .btn-primary {
-      margin-top: 1.75rem;
+      margin-top: 0;
       opacity: 0;
-      animation: fadeUp 0.5s ease 0.45s forwards;
+      animation: fadeUp 0.5s ease 0.25s forwards;
     }
 
     @keyframes fadeUp {
@@ -524,7 +384,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 1.5rem;
+      padding: max(1.5rem, env(safe-area-inset-top)) max(1.5rem, env(safe-area-inset-right))
+        max(1.5rem, env(safe-area-inset-bottom)) max(1.5rem, env(safe-area-inset-left));
     }
 
     html.hide-main-app .site-gate {
@@ -615,56 +476,23 @@
       <div class="track" id="track">
         <div class="panel">
           <div class="card">
-            <form id="prospect-form" novalidate>
-              <div class="field" id="field-first">
-                <input type="text" id="firstName" name="firstName" autocomplete="given-name" placeholder=" " required />
-                <label for="firstName">First Name</label>
-                <div class="field-error" id="err-first" aria-live="polite"></div>
-              </div>
-              <div class="field" id="field-last">
-                <input type="text" id="lastName" name="lastName" autocomplete="family-name" placeholder=" " required />
-                <label for="lastName">Last Name</label>
-                <div class="field-error" id="err-last" aria-live="polite"></div>
-              </div>
-              <div class="field" id="field-email">
-                <input type="email" id="email" name="email" autocomplete="email" placeholder=" " required />
-                <label for="email">Email</label>
-                <div class="field-error" id="err-email" aria-live="polite"></div>
-              </div>
-
-              <div class="field" id="field-size">
-                <span class="segment-label" id="size-label">Company Size</span>
-                <div class="segment-row" role="group" aria-labelledby="size-label">
-                  <button type="button" class="segment-btn" data-size="mm" aria-pressed="false">&lt; 500</button>
-                  <button type="button" class="segment-btn" data-size="ent" aria-pressed="false">500 – 4,999</button>
-                  <button type="button" class="segment-btn" data-size="strat" aria-pressed="false">5,000+</button>
-                </div>
-                <div class="field-error" id="err-size" aria-live="polite"></div>
-              </div>
-
-              <div class="guest-block">
-                <span class="segment-label" id="guest-label">Additional Guest Emails</span>
-                <div class="guest-input-wrap" id="guest-wrap">
-                  <span id="guest-chips"></span>
-                  <input type="text" class="guest-input" id="guest-input" placeholder="Add email, Enter or comma" aria-labelledby="guest-label" inputmode="email" autocomplete="off" />
-                </div>
-              </div>
-
-              <button type="submit" class="btn-primary" id="submit-btn">Find a Time</button>
-              <p class="booking-hint" style="margin:0.85rem 0 0;text-align:center">
-                Company size selects the meeting type; name and email are passed into the calendar when supported.
-              </p>
-            </form>
+            <span class="segment-label" id="size-label">Company size</span>
+            <p class="size-hint">Tap the segment that matches the prospect. You’ll enter details in Chili Piper.</p>
+            <div class="segment-row segment-row--pick" role="group" aria-labelledby="size-label">
+              <button type="button" class="segment-btn" data-size="mm" aria-pressed="false">&lt; 500</button>
+              <button type="button" class="segment-btn" data-size="ent" aria-pressed="false">500 – 4,999</button>
+              <button type="button" class="segment-btn" data-size="strat" aria-pressed="false">5,000+</button>
+            </div>
           </div>
         </div>
 
         <div class="panel">
           <div class="panel-booking-inner card" style="flex:1;min-height:0;display:flex;flex-direction:column;padding-top:0.75rem;">
             <div class="booking-toolbar">
-              <button type="button" class="back-link" id="back-btn" aria-label="Back to form">← Back</button>
+              <button type="button" class="back-link" id="back-btn" aria-label="Back to company size">← Back</button>
             </div>
             <p class="booking-hint" id="booking-iframe-hint" style="margin:0 0 0.65rem">
-              Choose a time in the calendar below. If it does not load, use <a class="back-link" style="display:inline;min-height:auto;padding:0;text-decoration:underline" id="open-cp-tab" href="#" target="_blank" rel="noopener noreferrer">open in new tab</a> or copy the link.
+              Pick a time below. If the frame is blank, <a class="back-link" style="display:inline;min-height:auto;padding:0;text-decoration:underline" id="open-cp-tab" href="#" target="_blank" rel="noopener noreferrer">open in new tab</a> or copy the link.
             </p>
             <div id="chilipiper-wrapper" aria-label="Meeting scheduler"></div>
             <button type="button" class="btn-secondary" id="copy-booking-url-btn" style="margin-top:0.65rem;width:100%">
@@ -676,14 +504,8 @@
 
       <div class="confirmation card" id="confirmation">
         <h2>Meeting booked! ✓</h2>
-        <p class="detail" id="conf-name"></p>
-        <p class="detail muted" id="conf-email"></p>
-        <div class="guest-note" id="guest-note-block">
-          <p>Add guests manually after booking — emails copied below.</p>
-          <div class="fallback-url" id="conf-guest-emails"></div>
-          <button type="button" class="btn-secondary" id="copy-guests-btn" style="margin-top:0.75rem;width:100%;">Copy guest emails</button>
-        </div>
-        <button type="button" class="btn-primary" id="book-another-btn">Book Another</button>
+        <p class="detail" id="conf-sub">You’re all set.</p>
+        <button type="button" class="btn-primary" id="book-another-btn">Book another</button>
       </div>
     </div>
   </div>
@@ -751,197 +573,60 @@
     (function () {
       var ROUTES = {
         mm: {
-          slug: "outbound-default-meeting-45-mm",
           url: "https://adaptivesecurity.chilipiper.com/round-robin/outbound-default-meeting-45-mm"
         },
         ent: {
-          slug: "outbound-default-meeting-45-ent",
           url: "https://adaptivesecurity.chilipiper.com/round-robin/outbound-default-meeting-45-ent"
         },
         strat: {
-          slug: "strat-default-meeting-47",
           url: "https://adaptivesecurity.chilipiper.com/round-robin/strat-default-meeting-47"
         }
       };
 
-      var form = document.getElementById("prospect-form");
       var track = document.getElementById("track");
-      var stage = document.getElementById("stage");
       var confirmation = document.getElementById("confirmation");
       var chilipiperWrapper = document.getElementById("chilipiper-wrapper");
       var backBtn = document.getElementById("back-btn");
-      var guestChipsEl = document.getElementById("guest-chips");
-      var guestInput = document.getElementById("guest-input");
-      var guestNoteBlock = document.getElementById("guest-note-block");
-      var confGuestEmails = document.getElementById("conf-guest-emails");
-      var copyGuestsBtn = document.getElementById("copy-guests-btn");
       var openCpTab = document.getElementById("open-cp-tab");
 
-      var selectedSize = null;
-      var guestEmails = [];
       var currentBookingUrl = "";
       var currentPrefillUrl = "";
-      var lastLead = {};
 
-      function toggleFieldValueClass(input, fieldEl) {
-        if (!fieldEl) fieldEl = input.closest(".field");
-        if (input.value.trim()) fieldEl.classList.add("has-value");
-        else fieldEl.classList.remove("has-value");
-      }
-
-      ["firstName", "lastName", "email"].forEach(function (id) {
-        var el = document.getElementById(id);
-        var field = document.getElementById("field-" + (id === "firstName" ? "first" : id === "lastName" ? "last" : "email"));
-        el.addEventListener("input", function () {
-          toggleFieldValueClass(el, field);
-          clearErr(id);
-        });
-        el.addEventListener("blur", function () { validateField(id); });
-        toggleFieldValueClass(el, field);
-      });
-
-      document.querySelectorAll(".segment-btn").forEach(function (btn) {
-        btn.addEventListener("click", function () {
-          document.querySelectorAll(".segment-btn").forEach(function (b) {
-            b.classList.remove("active");
-            b.setAttribute("aria-pressed", "false");
-          });
-          btn.classList.add("active");
-          btn.setAttribute("aria-pressed", "true");
-          selectedSize = btn.getAttribute("data-size");
-          document.getElementById("err-size").textContent = "";
-        });
-      });
-
-      function isValidEmail(s) {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(s).trim());
-      }
-
-      function addGuestEmail(raw) {
-        var e = String(raw).trim();
-        if (!e || !isValidEmail(e)) return;
-        if (guestEmails.indexOf(e.toLowerCase()) !== -1) return;
-        guestEmails.push(e.toLowerCase());
-        renderGuestChips();
-      }
-
-      function renderGuestChips() {
-        guestChipsEl.innerHTML = "";
-        guestEmails.forEach(function (email) {
-          var chip = document.createElement("span");
-          chip.className = "guest-chip";
-          chip.textContent = email;
-          var rm = document.createElement("button");
-          rm.type = "button";
-          rm.setAttribute("aria-label", "Remove " + email);
-          rm.textContent = "✕";
-          rm.addEventListener("click", function () {
-            guestEmails = guestEmails.filter(function (g) { return g !== email; });
-            renderGuestChips();
-          });
-          chip.appendChild(rm);
-          guestChipsEl.appendChild(chip);
+      function setSegmentActive(sizeKey) {
+        document.querySelectorAll(".segment-btn").forEach(function (b) {
+          var on = b.getAttribute("data-size") === sizeKey;
+          b.classList.toggle("active", on);
+          b.setAttribute("aria-pressed", on ? "true" : "false");
         });
       }
 
-      function splitEmails(str) {
-        return str.split(/[\s,;]+/).map(function (x) { return x.trim(); }).filter(Boolean);
-      }
+      function openCalendarForSize(sizeKey) {
+        var route = ROUTES[sizeKey];
+        if (!route) return;
+        currentBookingUrl = route.url;
+        currentPrefillUrl = route.url;
+        setSegmentActive(sizeKey);
 
-      guestInput.addEventListener("keydown", function (ev) {
-        if (ev.key === "Enter" || ev.key === ",") {
-          ev.preventDefault();
-          addGuestEmail(guestInput.value);
-          guestInput.value = "";
-        } else if (ev.key === "Backspace" && !guestInput.value && guestEmails.length) {
-          guestEmails.pop();
-          renderGuestChips();
-        }
-      });
-
-      guestInput.addEventListener("paste", function (ev) {
-        ev.preventDefault();
-        var text = (ev.clipboardData || window.clipboardData).getData("text") || "";
-        splitEmails(text).forEach(addGuestEmail);
-        guestInput.value = "";
-      });
-
-      function clearErr(which) {
-        var map = {
-          first: "err-first",
-          last: "err-last",
-          email: "err-email",
-          size: "err-size"
-        };
-        if (which === "firstName") document.getElementById("err-first").textContent = "";
-        else if (which === "lastName") document.getElementById("err-last").textContent = "";
-        else if (which === "email") document.getElementById("err-email").textContent = "";
-      }
-
-      function validateField(which) {
-        var ok = true;
-        if (which === "firstName") {
-          var v = document.getElementById("firstName").value.trim();
-          document.getElementById("err-first").textContent = v ? "" : "Required";
-          ok = !!v;
-        } else if (which === "lastName") {
-          var v2 = document.getElementById("lastName").value.trim();
-          document.getElementById("err-last").textContent = v2 ? "" : "Required";
-          ok = !!v2;
-        } else if (which === "email") {
-          var v3 = document.getElementById("email").value.trim();
-          var err = !v3 ? "Required" : !isValidEmail(v3) ? "Invalid email" : "";
-          document.getElementById("err-email").textContent = err;
-          ok = !err;
-        }
-        return ok;
-      }
-
-      function validateForm() {
-        var a = validateField("firstName");
-        var b = validateField("lastName");
-        var c = validateField("email");
-        var d = true;
-        if (!selectedSize) {
-          document.getElementById("err-size").textContent = "Select company size";
-          d = false;
-        } else {
-          document.getElementById("err-size").textContent = "";
-        }
-        return a && b && c && d;
-      }
-
-      function buildChiliPrefillUrl(base, firstName, lastName, email, guestsCsv) {
-        var u;
-        try {
-          u = new URL(base);
-        } catch (e) {
-          return base;
-        }
-        if (email) {
-          u.searchParams.set("Email", email);
-          u.searchParams.set("email", email);
-        }
-        if (firstName) {
-          u.searchParams.set("FirstName", firstName);
-          u.searchParams.set("firstName", firstName);
-        }
-        if (lastName) {
-          u.searchParams.set("LastName", lastName);
-          u.searchParams.set("lastName", lastName);
-        }
-        if (guestsCsv) {
-          u.searchParams.set("GuestEmails", guestsCsv);
-          u.searchParams.set("guestEmails", guestsCsv);
-        }
-        return u.toString();
-      }
-
-      function showBookingUI() {
         document.body.classList.add("widget-open");
         track.classList.add("show-booking");
         chilipiperWrapper.classList.remove("hidden");
+        chilipiperWrapper.innerHTML = "";
+
+        if (openCpTab) openCpTab.setAttribute("href", currentPrefillUrl);
+
+        var ifr = document.createElement("iframe");
+        ifr.title = "Chili Piper — schedule a meeting";
+        ifr.setAttribute("allow", "camera; microphone; fullscreen");
+        ifr.referrerPolicy = "strict-origin-when-cross-origin";
+        ifr.src = currentPrefillUrl;
+        chilipiperWrapper.appendChild(ifr);
       }
+
+      document.querySelectorAll(".segment-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+          openCalendarForSize(btn.getAttribute("data-size"));
+        });
+      });
 
       function showFormUI() {
         document.body.classList.remove("widget-open");
@@ -956,39 +641,15 @@
         document.body.classList.remove("widget-open");
         track.classList.add("hidden");
         confirmation.classList.add("visible");
-
-        var fn = lastLead.FirstName || "";
-        var ln = lastLead.LastName || "";
-        document.getElementById("conf-name").textContent = (fn + " " + ln).trim() || "—";
-        document.getElementById("conf-email").textContent = lastLead.Email || "";
-
-        var guests = lastLead._guestList || [];
-        if (guests.length) {
-          guestNoteBlock.style.display = "block";
-          confGuestEmails.textContent = guests.join(", ");
-        } else {
-          guestNoteBlock.style.display = "none";
-        }
       }
 
       function resetAll() {
         showFormUI();
         track.classList.remove("hidden");
-        form.reset();
-        selectedSize = null;
-        guestEmails = [];
-        renderGuestChips();
         document.querySelectorAll(".segment-btn").forEach(function (b) {
           b.classList.remove("active");
           b.setAttribute("aria-pressed", "false");
         });
-        ["field-first", "field-last", "field-email"].forEach(function (fid) {
-          document.getElementById(fid).classList.remove("has-value");
-        });
-        document.getElementById("err-first").textContent = "";
-        document.getElementById("err-last").textContent = "";
-        document.getElementById("err-email").textContent = "";
-        document.getElementById("err-size").textContent = "";
         chilipiperWrapper.innerHTML = "";
         if (openCpTab) openCpTab.setAttribute("href", "#");
       }
@@ -1024,54 +685,15 @@
         copyText(currentPrefillUrl || currentBookingUrl);
       });
 
-      copyGuestsBtn.addEventListener("click", function () {
-        copyText((lastLead._guestList || []).join(", "));
-      });
-
       backBtn.addEventListener("click", function () {
         showFormUI();
+        document.querySelectorAll(".segment-btn").forEach(function (b) {
+          b.classList.remove("active");
+          b.setAttribute("aria-pressed", "false");
+        });
       });
 
       document.getElementById("book-another-btn").addEventListener("click", resetAll);
-
-      form.addEventListener("submit", function (ev) {
-        ev.preventDefault();
-        if (!validateForm()) return;
-
-        var firstName = document.getElementById("firstName").value.trim();
-        var lastName = document.getElementById("lastName").value.trim();
-        var email = document.getElementById("email").value.trim();
-        var route = ROUTES[selectedSize];
-        currentBookingUrl = route.url;
-
-        lastLead = {
-          FirstName: firstName,
-          LastName: lastName,
-          Email: email,
-          _guestList: guestEmails.slice()
-        };
-
-        var guestCsv = guestEmails.join(", ");
-        currentPrefillUrl = buildChiliPrefillUrl(
-          currentBookingUrl,
-          firstName,
-          lastName,
-          email,
-          guestCsv
-        );
-
-        showBookingUI();
-        chilipiperWrapper.innerHTML = "";
-
-        if (openCpTab) openCpTab.setAttribute("href", currentPrefillUrl);
-
-        var ifr = document.createElement("iframe");
-        ifr.title = "Chili Piper — schedule a meeting";
-        ifr.setAttribute("allow", "camera; microphone; fullscreen");
-        ifr.referrerPolicy = "strict-origin-when-cross-origin";
-        ifr.src = currentPrefillUrl;
-        chilipiperWrapper.appendChild(ifr);
-      });
     })();
   </script>
 </body>
