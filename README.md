@@ -7,9 +7,13 @@ Static booking app for GitHub Pages. Deployed HTML uses a **password gate**: the
 ## One-time GitHub setup
 
 1. Create a new repository on GitHub and push this project (see below).
-2. **Settings → Secrets and variables → Actions → New repository secret**
-   - Name: `SITE_ACCESS_PASSWORD`
-   - Value: the password your team will use on the site.
+2. **Settings → Secrets and variables → Actions → New repository secrets**
+   - `SITE_ACCESS_PASSWORD` — password your team uses on the site (for the gate).
+   - `CHILI_URL_MM` — full round-robin URL for **&lt; 500** (e.g. `https://yourtenant.chilipiper.com/round-robin/your-router-mm`).
+   - `CHILI_URL_ENT` — full URL for **500 – 4,999**.
+   - `CHILI_URL_STRAT` — full URL for **5,000+**.
+
+   The committed `index.html` does **not** contain these URLs; the workflow injects them when deploying to GitHub Pages.
 3. **Settings → Pages**
    - **Source:** GitHub Actions (not “Deploy from a branch”).
 4. Push to `main`. The **Deploy GitHub Pages** workflow runs, injects the hash into `index.html` in the build only, and publishes the artifact. Your site will be at:
@@ -34,9 +38,12 @@ Include `adaptive-booking-cursor-prompt.md` in the repo only if you want it in v
 
 ## Local development
 
-With the placeholder `__GH_PAGES_ACCESS_SHA256__` left in `index.html`, the password gate is **off** and ChiliPiper loads immediately—useful for local testing.
+Placeholders in `index.html` (`__GH_PAGES_ACCESS_SHA256__`, `__CHILI_URL_*__`) are replaced only in CI. For local testing, either:
 
-To test the gate locally, replace both occurrences of `__GH_PAGES_ACCESS_SHA256__` with the SHA-256 hex of your password (do not commit that if the repo is public):
+- Temporarily replace those strings in a **copy** of `index.html` (do not commit real URLs/password hashes if the repo is public), or  
+- Run the same `sed` commands as in `.github/workflows/pages.yml` with your values.
+
+Password gate off locally: leave `__GH_PAGES_ACCESS_SHA256__` as-is.
 
 ```bash
 printf '%s' 'your-password' | shasum -a 256

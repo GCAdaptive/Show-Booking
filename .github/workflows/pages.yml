@@ -30,6 +30,20 @@ jobs:
           HASH=$(printf '%s' "${SITE_ACCESS_PASSWORD}" | sha256sum | awk '{print $1}')
           sed -i "s|__GH_PAGES_ACCESS_SHA256__|${HASH}|g" index.html
 
+      - name: Inject Chili Piper round-robin URLs
+        env:
+          CHILI_URL_MM: ${{ secrets.CHILI_URL_MM }}
+          CHILI_URL_ENT: ${{ secrets.CHILI_URL_ENT }}
+          CHILI_URL_STRAT: ${{ secrets.CHILI_URL_STRAT }}
+        run: |
+          if [ -z "${CHILI_URL_MM}" ] || [ -z "${CHILI_URL_ENT}" ] || [ -z "${CHILI_URL_STRAT}" ]; then
+            echo "::error::Add Actions secrets CHILI_URL_MM, CHILI_URL_ENT, CHILI_URL_STRAT (each value = full https://… round-robin URL for that segment)."
+            exit 1
+          fi
+          sed -i "s|__CHILI_URL_MM__|${CHILI_URL_MM}|g" index.html
+          sed -i "s|__CHILI_URL_ENT__|${CHILI_URL_ENT}|g" index.html
+          sed -i "s|__CHILI_URL_STRAT__|${CHILI_URL_STRAT}|g" index.html
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
