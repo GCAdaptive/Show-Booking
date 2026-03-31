@@ -144,7 +144,20 @@
 
     #chilipiper-wrapper {
       flex: 1;
-      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: max(320px, 52vh);
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: #0d0d12;
+    }
+
+    #chilipiper-wrapper iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 420px;
+      border: 0;
+      background: #fff;
     }
 
     .fallback {
@@ -180,13 +193,6 @@
       line-height: 1.4;
       font-family: "DM Mono", monospace;
       letter-spacing: 0.04em;
-    }
-
-    .booking-fallback-ui {
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-      margin-top: 0.25rem;
     }
 
     .fallback-url {
@@ -646,7 +652,7 @@
 
               <button type="submit" class="btn-primary" id="submit-btn">Find a Time</button>
               <p class="booking-hint" style="margin:0.85rem 0 0;text-align:center">
-                Those details are sent to Chili Piper when the scheduler opens so you should not need to re-type them.
+                Company size selects the meeting type; name and email are passed into the calendar when supported.
               </p>
             </form>
           </div>
@@ -657,20 +663,13 @@
             <div class="booking-toolbar">
               <button type="button" class="back-link" id="back-btn" aria-label="Back to form">← Back</button>
             </div>
-            <div id="booking-fallback-ui" class="booking-fallback-ui hidden">
-              <p class="booking-hint" id="booking-panel-intro" style="margin:0"></p>
-              <p class="fallback-detail hidden" id="fallback-detail" style="margin:0"></p>
-              <button type="button" class="btn-primary" id="continue-calendar-btn" style="width:100%">
-                Continue to calendar
-              </button>
-              <p class="booking-hint" style="margin:0">
-                <a class="back-link" style="display:inline;min-height:auto;padding:0;text-decoration:underline" id="open-cp-tab" href="#" target="_blank" rel="noopener noreferrer">Open in new tab</a>
-              </p>
-              <button type="button" class="btn-secondary" id="copy-booking-url-btn" style="width:100%">
-                Copy link (includes your details)
-              </button>
-            </div>
-            <div id="chilipiper-wrapper" class="hidden" aria-hidden="true"></div>
+            <p class="booking-hint" id="booking-iframe-hint" style="margin:0 0 0.65rem">
+              Choose a time in the calendar below. If it does not load, use <a class="back-link" style="display:inline;min-height:auto;padding:0;text-decoration:underline" id="open-cp-tab" href="#" target="_blank" rel="noopener noreferrer">open in new tab</a> or copy the link.
+            </p>
+            <div id="chilipiper-wrapper" aria-label="Meeting scheduler"></div>
+            <button type="button" class="btn-secondary" id="copy-booking-url-btn" style="margin-top:0.65rem;width:100%">
+              Copy meeting link
+            </button>
           </div>
         </div>
       </div>
@@ -694,20 +693,10 @@
       var EXPECTED_SHA256 = "__GH_PAGES_ACCESS_SHA256__";
       var GATE_ON = EXPECTED_SHA256.length === 64 && /^[a-f0-9]+$/i.test(EXPECTED_SHA256);
 
-      function loadChiliPiperScript() {
-        if (window.__cpMarketingLoading) return;
-        window.__cpMarketingLoading = true;
-        var s = document.createElement("script");
-        s.src = "https://js.chilipiper.com/marketing.js";
-        s.async = true;
-        document.head.appendChild(s);
-      }
-
       function revealMainApp() {
         document.documentElement.classList.remove("hide-main-app");
         var g = document.getElementById("site-gate");
         if (g) g.classList.add("hidden");
-        loadChiliPiperScript();
       }
 
       if (!GATE_ON) {
@@ -780,10 +769,6 @@
       var stage = document.getElementById("stage");
       var confirmation = document.getElementById("confirmation");
       var chilipiperWrapper = document.getElementById("chilipiper-wrapper");
-      var bookingFallbackUi = document.getElementById("booking-fallback-ui");
-      var bookingPanelIntro = document.getElementById("booking-panel-intro");
-      var fallbackDetailEl = document.getElementById("fallback-detail");
-      var continueCalendarBtn = document.getElementById("continue-calendar-btn");
       var backBtn = document.getElementById("back-btn");
       var guestChipsEl = document.getElementById("guest-chips");
       var guestInput = document.getElementById("guest-input");
@@ -797,8 +782,6 @@
       var currentBookingUrl = "";
       var currentPrefillUrl = "";
       var lastLead = {};
-      var CP_TIMEOUT_MS = 25000;
-      var TENANT = "adaptivesecurity";
 
       function toggleFieldValueClass(input, fieldEl) {
         if (!fieldEl) fieldEl = input.closest(".field");
@@ -954,40 +937,10 @@
         return u.toString();
       }
 
-      function waitForChiliPiper(ms) {
-        return new Promise(function (resolve, reject) {
-          var t0 = Date.now();
-          var id = setInterval(function () {
-            if (window.ChiliPiper && typeof window.ChiliPiper.submit === "function") {
-              clearInterval(id);
-              resolve();
-            } else if (Date.now() - t0 > ms) {
-              clearInterval(id);
-              reject(new Error("Chili Piper script did not load in time."));
-            }
-          }, 40);
-        });
-      }
-
-      function showBookingFailurePanel(apiMessage) {
+      function showBookingUI() {
         document.body.classList.add("widget-open");
         track.classList.add("show-booking");
-        chilipiperWrapper.classList.add("hidden");
-        if (bookingFallbackUi) bookingFallbackUi.classList.remove("hidden");
-        if (bookingPanelIntro) {
-          bookingPanelIntro.textContent =
-            "We could not open the scheduler from this page (often the site URL must be allowlisted in Chili Piper). Your name and email are attached to the link below — tap Continue so you do not have to type them again.";
-        }
-        if (fallbackDetailEl) {
-          if (apiMessage) {
-            fallbackDetailEl.textContent = String(apiMessage);
-            fallbackDetailEl.classList.remove("hidden");
-          } else {
-            fallbackDetailEl.textContent = "";
-            fallbackDetailEl.classList.add("hidden");
-          }
-        }
-        if (openCpTab) openCpTab.setAttribute("href", currentPrefillUrl || currentBookingUrl);
+        chilipiperWrapper.classList.remove("hidden");
       }
 
       function showFormUI() {
@@ -996,10 +949,7 @@
         track.classList.remove("hidden");
         confirmation.classList.remove("visible");
         chilipiperWrapper.innerHTML = "";
-        if (bookingFallbackUi) bookingFallbackUi.classList.add("hidden");
         if (openCpTab) openCpTab.setAttribute("href", "#");
-        var sb = document.getElementById("submit-btn");
-        if (sb) sb.disabled = false;
       }
 
       function showConfirmation() {
@@ -1040,10 +990,7 @@
         document.getElementById("err-email").textContent = "";
         document.getElementById("err-size").textContent = "";
         chilipiperWrapper.innerHTML = "";
-        if (bookingFallbackUi) bookingFallbackUi.classList.add("hidden");
         if (openCpTab) openCpTab.setAttribute("href", "#");
-        var sb2 = document.getElementById("submit-btn");
-        if (sb2) sb2.disabled = false;
       }
 
       window.addEventListener("message", function (ev) {
@@ -1076,13 +1023,6 @@
       document.getElementById("copy-booking-url-btn").addEventListener("click", function () {
         copyText(currentPrefillUrl || currentBookingUrl);
       });
-
-      if (continueCalendarBtn) {
-        continueCalendarBtn.addEventListener("click", function () {
-          var url = currentPrefillUrl || currentBookingUrl;
-          if (url) window.location.href = url;
-        });
-      }
 
       copyGuestsBtn.addEventListener("click", function () {
         copyText((lastLead._guestList || []).join(", "));
@@ -1120,56 +1060,17 @@
           guestCsv
         );
 
-        var leadPayload = {
-          FirstName: firstName,
-          LastName: lastName,
-          Email: email
-        };
-        if (guestCsv) {
-          leadPayload.GuestEmails = guestCsv;
-          leadPayload.guestEmails = guestCsv;
-        }
+        showBookingUI();
+        chilipiperWrapper.innerHTML = "";
 
-        var submitBtn = document.getElementById("submit-btn");
-        submitBtn.disabled = true;
+        if (openCpTab) openCpTab.setAttribute("href", currentPrefillUrl);
 
-        waitForChiliPiper(CP_TIMEOUT_MS)
-          .then(function () {
-            var opts = {
-              title: "Book a Meeting",
-              map: true,
-              lead: leadPayload,
-              onSuccess: function () {
-                submitBtn.disabled = false;
-                showConfirmation();
-              },
-              onClose: function () {
-                submitBtn.disabled = false;
-              },
-              onError: function (info) {
-                submitBtn.disabled = false;
-                var msg =
-                  (info && (info.message || (info.error && info.error.message))) || "";
-                if (msg) console.error("ChiliPiper onError:", info);
-                showBookingFailurePanel(
-                  msg ||
-                    "Allowlist this page in Chili Piper (website / source URL), or use Continue below."
-                );
-              }
-            };
-            try {
-              window.ChiliPiper.submit(TENANT, route.slug, opts);
-            } catch (e) {
-              console.error(e);
-              submitBtn.disabled = false;
-              showBookingFailurePanel(e && e.message ? String(e.message) : "");
-            }
-          })
-          .catch(function (err) {
-            console.error(err);
-            submitBtn.disabled = false;
-            showBookingFailurePanel((err && err.message) || String(err));
-          });
+        var ifr = document.createElement("iframe");
+        ifr.title = "Chili Piper — schedule a meeting";
+        ifr.setAttribute("allow", "camera; microphone; fullscreen");
+        ifr.referrerPolicy = "strict-origin-when-cross-origin";
+        ifr.src = currentPrefillUrl;
+        chilipiperWrapper.appendChild(ifr);
       });
     })();
   </script>
