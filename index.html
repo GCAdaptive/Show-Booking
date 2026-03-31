@@ -47,6 +47,94 @@
     body.widget-open {
       overflow: hidden;
       height: 100dvh;
+      height: 100svh;
+    }
+
+    /* Calendar step: maximize iframe area (phone / iPad) */
+    body.calendar-step {
+      overflow: hidden;
+      height: 100%;
+      height: 100dvh;
+      height: 100svh;
+      height: -webkit-fill-available;
+    }
+
+    body.calendar-step #main-app.app {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      height: 100svh;
+      max-height: 100svh;
+      padding: max(0.35rem, env(safe-area-inset-top))
+        max(0.65rem, env(safe-area-inset-right))
+        max(0.35rem, env(safe-area-inset-bottom))
+        max(0.65rem, env(safe-area-inset-left));
+    }
+
+    body.calendar-step header {
+      display: none;
+    }
+
+    body.calendar-step .stage {
+      flex: 1 1 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+
+    body.calendar-step .track {
+      flex: 1 1 0;
+      min-height: 0;
+      align-items: stretch;
+    }
+
+    body.calendar-step .panel {
+      min-height: 0;
+    }
+
+    body.calendar-step .panel-booking-inner.card {
+      flex: 1 1 0;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 0.35rem 0.5rem 0.5rem;
+      border: none;
+      box-shadow: none;
+      background: transparent;
+    }
+
+    body.calendar-step .booking-toolbar {
+      flex-shrink: 0;
+      margin-bottom: 0.25rem;
+    }
+
+    body.calendar-step .booking-hint {
+      flex-shrink: 0;
+      font-size: 0.65rem;
+      margin: 0 0 0.35rem;
+      line-height: 1.3;
+    }
+
+    body.calendar-step #chilipiper-wrapper {
+      flex: 1 1 0;
+      min-height: 0;
+      width: 100%;
+      max-width: 100%;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+
+    body.calendar-step #chilipiper-wrapper iframe {
+      display: block;
+      width: 100% !important;
+      max-width: 100%;
+      min-height: 0;
+      border: 0;
+    }
+
+    body.calendar-step #copy-booking-url-btn {
+      flex-shrink: 0;
+      margin-top: 0.45rem;
     }
 
     .app {
@@ -594,6 +682,51 @@
         });
       }
 
+      var iframeResizeObserver = null;
+      var onViewportResize = null;
+
+      function disconnectIframeSizing() {
+        if (iframeResizeObserver) {
+          iframeResizeObserver.disconnect();
+          iframeResizeObserver = null;
+        }
+        if (onViewportResize && window.visualViewport) {
+          window.visualViewport.removeEventListener("resize", onViewportResize);
+          onViewportResize = null;
+        }
+      }
+
+      function fitIframeToWrapper() {
+        var wrap = chilipiperWrapper;
+        var ifr = wrap && wrap.querySelector("iframe");
+        if (!wrap || !ifr) return;
+        var h = wrap.clientHeight;
+        if (h > 0) {
+          ifr.style.height = h + "px";
+          ifr.style.minHeight = h + "px";
+        }
+      }
+
+      function bindIframeSizing() {
+        disconnectIframeSizing();
+        fitIframeToWrapper();
+        iframeResizeObserver = new ResizeObserver(function () {
+          fitIframeToWrapper();
+        });
+        iframeResizeObserver.observe(chilipiperWrapper);
+        onViewportResize = function () {
+          fitIframeToWrapper();
+        };
+        if (window.visualViewport) {
+          window.visualViewport.addEventListener("resize", onViewportResize);
+        }
+      }
+
+      window.addEventListener("orientationchange", function () {
+        if (!document.body.classList.contains("calendar-step")) return;
+        setTimeout(fitIframeToWrapper, 400);
+      });
+
       function openCalendarForSize(sizeKey) {
         var route = ROUTES[sizeKey];
         if (!route) return;
@@ -602,6 +735,7 @@
         setSegmentActive(sizeKey);
 
         document.body.classList.add("widget-open");
+        document.body.classList.add("calendar-step");
         track.classList.add("show-booking");
         chilipiperWrapper.classList.remove("hidden");
         chilipiperWrapper.innerHTML = "";
@@ -612,8 +746,18 @@
         ifr.title = "Chili Piper — schedule a meeting";
         ifr.setAttribute("allow", "camera; microphone; fullscreen");
         ifr.referrerPolicy = "strict-origin-when-cross-origin";
+        ifr.style.width = "100%";
+        ifr.style.border = "0";
+        ifr.style.display = "block";
         ifr.src = currentPrefillUrl;
         chilipiperWrapper.appendChild(ifr);
+
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            bindIframeSizing();
+            fitIframeToWrapper();
+          });
+        });
       }
 
       document.querySelectorAll(".segment-btn").forEach(function (btn) {
@@ -623,7 +767,9 @@
       });
 
       function showFormUI() {
+        disconnectIframeSizing();
         document.body.classList.remove("widget-open");
+        document.body.classList.remove("calendar-step");
         track.classList.remove("show-booking");
         track.classList.remove("hidden");
         confirmation.classList.remove("visible");
@@ -632,7 +778,9 @@
       }
 
       function showConfirmation() {
+        disconnectIframeSizing();
         document.body.classList.remove("widget-open");
+        document.body.classList.remove("calendar-step");
         track.classList.add("hidden");
         confirmation.classList.add("visible");
       }
