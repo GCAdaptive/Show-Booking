@@ -62,13 +62,39 @@
     body.calendar-step #main-app.app {
       display: flex;
       flex-direction: column;
-      min-height: 0;
+      /* Do not use min-height:0 here — it collapses the whole app to invisible on some desktops */
+      min-height: 100svh;
+      min-height: 100dvh;
       height: 100svh;
       max-height: 100svh;
       padding: max(0.35rem, env(safe-area-inset-top))
         max(0.65rem, env(safe-area-inset-right))
         max(0.35rem, env(safe-area-inset-bottom))
         max(0.65rem, env(safe-area-inset-left));
+    }
+
+    /* Wider screens: allow vertical scroll so nothing is clipped off-viewport */
+    @media (min-width: 768px) {
+      body.calendar-step {
+        overflow: auto;
+        height: auto;
+        min-height: 100svh;
+        min-height: 100dvh;
+      }
+
+      /* Beat body.widget-open { overflow: hidden } while calendar is open */
+      body.widget-open.calendar-step {
+        overflow: auto;
+        height: auto;
+        min-height: 100svh;
+        min-height: 100dvh;
+      }
+
+      body.calendar-step #main-app.app {
+        height: auto;
+        max-height: none;
+        min-height: min(100dvh, 100svh);
+      }
     }
 
     body.calendar-step header {
@@ -88,15 +114,9 @@
       align-items: stretch;
     }
 
-    /* Let booking panel fill track height on desktop; min-height:0 collapsed iframe area on PC */
+    /* Fill track; do not force min-height:0 — it collapses the booking column */
     body.calendar-step .panel {
-      min-height: 0;
-    }
-
-    @media (min-width: 768px) {
-      body.calendar-step .panel {
-        min-height: 100%;
-      }
+      min-height: 100%;
     }
 
     body.calendar-step .panel-booking-inner.card {
@@ -123,8 +143,8 @@
     }
 
     body.calendar-step #chilipiper-wrapper {
-      flex: 1 1 0;
-      min-height: 0;
+      flex: 1 1 auto;
+      min-height: min(52vh, 640px);
       width: 100%;
       max-width: 100%;
       overflow: hidden;
@@ -713,15 +733,18 @@
         var wrap = chilipiperWrapper;
         var ifr = wrap && wrap.querySelector("iframe");
         if (!wrap || !ifr) return;
-        var h = wrap.clientHeight;
-        /* Flex collapse can yield ~0 on desktop; never leave iframe unusably small */
+        var h = Math.max(
+          wrap.clientHeight,
+          wrap.offsetHeight,
+          Math.round(wrap.getBoundingClientRect().height)
+        );
+        var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+        var wide = window.matchMedia && window.matchMedia("(min-width: 768px)").matches;
         if (h < 200) {
-          var vh = window.innerHeight || document.documentElement.clientHeight || 600;
-          var wide = window.matchMedia && window.matchMedia("(min-width: 768px)").matches;
           if (wide) {
             h = Math.max(h, Math.min(880, Math.round(vh * 0.68)));
           } else {
-            h = Math.max(h, 240);
+            h = Math.max(h, Math.min(640, Math.round(vh * 0.5)));
           }
         }
         ifr.style.height = h + "px";
@@ -762,6 +785,13 @@
         chilipiperWrapper.innerHTML = "";
 
         if (openCpTab) openCpTab.setAttribute("href", currentPrefillUrl);
+
+        if (!route.url || /^__CHILI_URL_/.test(route.url)) {
+          if (openCpTab) openCpTab.setAttribute("href", "#");
+          chilipiperWrapper.innerHTML =
+            '<p class="booking-hint" style="color:var(--error)">Calendar link is not configured in this copy. Deploy with GitHub Actions so CHILI_URL_* secrets are injected, or ask your admin.</p>';
+          return;
+        }
 
         var ifr = document.createElement("iframe");
         ifr.title = "Chili Piper — schedule a meeting";
