@@ -88,8 +88,15 @@
       align-items: stretch;
     }
 
+    /* Let booking panel fill track height on desktop; min-height:0 collapsed iframe area on PC */
     body.calendar-step .panel {
       min-height: 0;
+    }
+
+    @media (min-width: 768px) {
+      body.calendar-step .panel {
+        min-height: 100%;
+      }
     }
 
     body.calendar-step .panel-booking-inner.card {
@@ -122,6 +129,12 @@
       max-width: 100%;
       overflow: hidden;
       border: 1px solid var(--border);
+    }
+
+    @media (min-width: 768px) {
+      body.calendar-step #chilipiper-wrapper {
+        min-height: min(72vh, 880px);
+      }
     }
 
     body.calendar-step #chilipiper-wrapper iframe {
@@ -701,10 +714,18 @@
         var ifr = wrap && wrap.querySelector("iframe");
         if (!wrap || !ifr) return;
         var h = wrap.clientHeight;
-        if (h > 0) {
-          ifr.style.height = h + "px";
-          ifr.style.minHeight = h + "px";
+        /* Flex collapse can yield ~0 on desktop; never leave iframe unusably small */
+        if (h < 200) {
+          var vh = window.innerHeight || document.documentElement.clientHeight || 600;
+          var wide = window.matchMedia && window.matchMedia("(min-width: 768px)").matches;
+          if (wide) {
+            h = Math.max(h, Math.min(880, Math.round(vh * 0.68)));
+          } else {
+            h = Math.max(h, 240);
+          }
         }
+        ifr.style.height = h + "px";
+        ifr.style.minHeight = h + "px";
       }
 
       function bindIframeSizing() {
