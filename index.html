@@ -144,10 +144,20 @@
 
     #chilipiper-wrapper {
       flex: 1;
-      min-height: 320px;
-      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      min-height: max(320px, 52vh);
+      overflow: hidden;
       border: 1px solid var(--border);
-      background: var(--bg);
+      background: #0d0d12;
+    }
+
+    #chilipiper-wrapper iframe {
+      flex: 1;
+      width: 100%;
+      min-height: 420px;
+      border: 0;
+      background: #fff;
     }
 
     .fallback {
@@ -651,11 +661,14 @@
               <button type="button" class="back-link" id="back-btn" aria-label="Back to form">← Back</button>
             </div>
             <p class="booking-hint" id="booking-hint">
-              Scheduling opens in a Chili Piper overlay on top of this page. If it does not appear, use the fallback link below.
+              Calendar loads below (embedded). If the frame stays blank, use <a class="back-link" style="display:inline;min-height:auto;padding:0;text-decoration:underline" id="open-cp-tab" href="#" target="_blank" rel="noopener noreferrer">open in new tab</a> or copy the link.
             </p>
             <div id="chilipiper-wrapper" aria-label="Meeting scheduler"></div>
+            <button type="button" class="btn-secondary" id="copy-booking-url-btn" style="margin-top:0.65rem;width:100%">
+              Copy meeting link
+            </button>
             <div class="fallback" id="chilipiper-fallback" role="alert">
-              <p>Calendar could not load. Send this link manually:</p>
+              <p>If the calendar does not appear above, open or share this link:</p>
               <p class="fallback-detail hidden" id="fallback-detail"></p>
               <div class="fallback-url" id="fallback-url"></div>
               <button type="button" class="btn-secondary" id="copy-fallback-btn">Copy Link</button>
@@ -683,20 +696,10 @@
       var EXPECTED_SHA256 = "__GH_PAGES_ACCESS_SHA256__";
       var GATE_ON = EXPECTED_SHA256.length === 64 && /^[a-f0-9]+$/i.test(EXPECTED_SHA256);
 
-      function loadChiliPiperScript() {
-        if (window.__cpMarketingLoading) return;
-        window.__cpMarketingLoading = true;
-        var s = document.createElement("script");
-        s.src = "https://js.chilipiper.com/marketing.js";
-        s.async = true;
-        document.head.appendChild(s);
-      }
-
       function revealMainApp() {
         document.documentElement.classList.remove("hide-main-app");
         var g = document.getElementById("site-gate");
         if (g) g.classList.add("hidden");
-        loadChiliPiperScript();
       }
 
       if (!GATE_ON) {
@@ -764,9 +767,6 @@
         }
       };
 
-      var CP_TIMEOUT_MS = 25000;
-      var TENANT = "adaptivesecurity";
-
       var form = document.getElementById("prospect-form");
       var track = document.getElementById("track");
       var stage = document.getElementById("stage");
@@ -782,6 +782,7 @@
       var guestNoteBlock = document.getElementById("guest-note-block");
       var confGuestEmails = document.getElementById("conf-guest-emails");
       var copyGuestsBtn = document.getElementById("copy-guests-btn");
+      var openCpTab = document.getElementById("open-cp-tab");
 
       var selectedSize = null;
       var guestEmails = [];
@@ -916,19 +917,18 @@
         return a && b && c && d;
       }
 
-      function waitForChiliPiper(ms) {
-        return new Promise(function (resolve, reject) {
-          var t0 = Date.now();
-          var id = setInterval(function () {
-            if (window.ChiliPiper && typeof window.ChiliPiper.submit === "function") {
-              clearInterval(id);
-              resolve();
-            } else if (Date.now() - t0 > ms) {
-              clearInterval(id);
-              reject(new Error("ChiliPiper load timeout"));
-            }
-          }, 40);
-        });
+      function buildRoundRobinIframeUrl(base, firstName, lastName, email, guestsCsv) {
+        var u;
+        try {
+          u = new URL(base);
+        } catch (e) {
+          return base;
+        }
+        if (email) u.searchParams.set("email", email);
+        if (firstName) u.searchParams.set("firstName", firstName);
+        if (lastName) u.searchParams.set("lastName", lastName);
+        if (guestsCsv) u.searchParams.set("guests", guestsCsv);
+        return u.toString();
       }
 
       function showFallback(reason) {
@@ -965,6 +965,7 @@
         chilipiperWrapper.innerHTML = "";
         fallbackEl.classList.remove("visible");
         chilipiperWrapper.classList.remove("hidden");
+        if (openCpTab) openCpTab.setAttribute("href", "#");
       }
 
       function showConfirmation() {
@@ -1005,7 +1006,17 @@
         document.getElementById("err-email").textContent = "";
         document.getElementById("err-size").textContent = "";
         chilipiperWrapper.innerHTML = "";
+        if (openCpTab) openCpTab.setAttribute("href", "#");
       }
+
+      window.addEventListener("message", function (ev) {
+        if (typeof ev.origin !== "string" || ev.origin.indexOf("chilipiper.com") === -1) return;
+        var d = ev.data;
+        if (!d || typeof d !== "object") return;
+        if (d.action === "booking-confirmed" && track.classList.contains("show-booking")) {
+          showConfirmation();
+        }
+      });
 
       function copyText(text) {
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -1026,6 +1037,10 @@
       }
 
       copyFallbackBtn.addEventListener("click", function () {
+        copyText(currentBookingUrl);
+      });
+
+      document.getElementById("copy-booking-url-btn").addEventListener("click", function () {
         copyText(currentBookingUrl);
       });
 
@@ -1057,58 +1072,30 @@
         };
 
         var guestCsv = guestEmails.join(", ");
-        var leadPayload = {
-          FirstName: firstName,
-          LastName: lastName,
-          Email: email
-        };
-        if (guestCsv) {
-          leadPayload.GuestEmails = guestCsv;
-          leadPayload.guestEmails = guestCsv;
-        }
 
         showBookingUI();
         chilipiperWrapper.innerHTML = "";
 
-        waitForChiliPiper(CP_TIMEOUT_MS)
-          .then(function () {
-            fallbackEl.classList.remove("visible");
-            chilipiperWrapper.classList.remove("hidden");
+        /* marketing.js calls concierge with sourceUrl = this page; unlisted hosts (e.g. GitHub Pages)
+           fail immediately. Embedding the public round-robin URL in an iframe avoids that API. */
+        var iframeSrc = buildRoundRobinIframeUrl(
+          currentBookingUrl,
+          firstName,
+          lastName,
+          email,
+          guestCsv
+        );
+        if (openCpTab) openCpTab.setAttribute("href", iframeSrc);
 
-            /* Omit domElement: ChiliPiper marketing.js only appends concierge=true when
-               domElement is absent; without it the concierge router often 403s and onError fires.
-               Calendar opens as their full-viewport overlay (z-index above this app). */
-            var opts = {
-              title: "Book a Meeting",
-              map: true,
-              lead: leadPayload,
-              onSuccess: function () {
-                showConfirmation();
-              },
-              onError: function (info) {
-                var msg = (info && (info.message || (info.error && info.error.message))) || "";
-                if (msg) console.error("ChiliPiper onError:", info);
-                showFallback(
-                  msg ||
-                    "Ask your Chili Piper admin to allow this site URL (sourceUrl) for the router, or confirm the router slug is correct."
-                );
-              }
-            };
+        fallbackEl.classList.remove("visible");
+        chilipiperWrapper.classList.remove("hidden");
 
-            try {
-              window.ChiliPiper.submit(TENANT, route.slug, opts);
-            } catch (e) {
-              console.error(e);
-              showFallback(e && e.message ? String(e.message) : "");
-            }
-          })
-          .catch(function (err) {
-            console.error(err);
-            showFallback(
-              (err && err.message) ||
-                "marketing.js did not load in time. Check network/ad blockers or try again."
-            );
-          });
+        var ifr = document.createElement("iframe");
+        ifr.title = "Chili Piper — schedule a meeting";
+        ifr.setAttribute("allow", "camera; microphone; fullscreen");
+        ifr.referrerPolicy = "strict-origin-when-cross-origin";
+        ifr.src = iframeSrc;
+        chilipiperWrapper.appendChild(ifr);
       });
     })();
   </script>
