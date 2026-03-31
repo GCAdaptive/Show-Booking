@@ -692,10 +692,11 @@
 
   <script>
     (function () {
+      /* Edit these if round-robin URLs change (no CI injection). */
       var ROUTES = {
-        mm: { url: "__CHILI_URL_MM__" },
-        ent: { url: "__CHILI_URL_ENT__" },
-        strat: { url: "__CHILI_URL_STRAT__" }
+        mm: { url: "https://adaptivesecurity.chilipiper.com/round-robin/outbound-default-meeting-45-mm" },
+        ent: { url: "https://adaptivesecurity.chilipiper.com/round-robin/outbound-default-meeting-45-ent" },
+        strat: { url: "https://adaptivesecurity.chilipiper.com/round-robin/strat-default-meeting-47" }
       };
 
       var track = document.getElementById("track");
@@ -786,10 +787,10 @@
 
         if (openCpTab) openCpTab.setAttribute("href", currentPrefillUrl);
 
-        if (!route.url || /^__CHILI_URL_/.test(route.url)) {
+        if (!route.url || !/^https?:\/\//i.test(String(route.url).trim())) {
           if (openCpTab) openCpTab.setAttribute("href", "#");
           chilipiperWrapper.innerHTML =
-            '<p class="booking-hint" style="color:var(--error)">Calendar link is not configured in this copy. Deploy with GitHub Actions so CHILI_URL_* secrets are injected, or ask your admin.</p>';
+            '<p class="booking-hint" style="color:var(--error)">Calendar URL is missing or invalid. Set each segment URL in the ROUTES object in index.html.</p>';
           return;
         }
 
